@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import LiveCursors from "./cursor/LiveCursors";
 import { useMyPresence, useOthers } from "@/liveblocks.config";
 import { CursorMode, CursorState } from "@/types/type";
+import CursorChat from "./cursor/CursorChat";
 
 const Live = () => {
   const others = useOthers();
@@ -68,6 +69,39 @@ const Live = () => {
     [cursorState.mode, setCursorState]
   );
 
+  // Listen to keyboard events to change the cursor state
+  useEffect(() => {
+    const onKeyUp = (e: KeyboardEvent) => {
+      console.log(e.key);
+      if (e.key === "/") {
+        setCursorState({
+          mode: CursorMode.Chat,
+          previousMessage: null,
+          message: "",
+        });
+      } else if (e.key === "Escape") {
+        updateMyPresence({ message: "" });
+        setCursorState({ mode: CursorMode.Hidden });
+      } else if (e.key === "e") {
+        setCursorState({ mode: CursorMode.ReactionSelector });
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/") {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [updateMyPresence]);
+
   return (
     <div
       className="relative flex h-full w-full flex-1 items-center justify-center"
@@ -77,6 +111,15 @@ const Live = () => {
       // onPointerUp={handlePointerUp}
     >
       <h1 className="text-4xl text-white">figma cl</h1>
+              {/* If cursor is in chat mode, show the chat cursor */}
+              {cursor && (
+          <CursorChat
+            cursor={cursor}
+            cursorState={cursorState}
+            setCursorState={setCursorState}
+            updateMyPresence={updateMyPresence}
+          />
+        )}
       <LiveCursors others={others} />
     </div>
   );

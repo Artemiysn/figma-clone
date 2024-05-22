@@ -4,8 +4,7 @@ import Live from "@/components/Live";
 
 export default function Page() {
   return (
-    // <div className="h-[100vh] w-full flex justify-center items-center">
-    <div>
+    <div className="h-[100vh] w-full flex justify-center items-center">
       <Live />
     </div>
   );
