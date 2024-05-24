@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { RefObject, useCallback, useEffect, useState } from "react";
 import LiveCursors from "./cursor/LiveCursors";
 import {
   useBroadcastEvent,
@@ -12,7 +12,14 @@ import ReactionSelector from "./reaction/ReactionButton";
 import FlyingReaction from "./reaction/FlyingReaction";
 import useInterval from "@/hooks/useInterval";
 
-const Live = () => {
+type Props = {
+  canvasRef: React.MutableRefObject<HTMLCanvasElement | null>;
+  // undo: () => void;
+  // redo: () => void;
+};
+
+const Live = ({canvasRef}: Props) => {
+
   const others = useOthers();
 
   const [{ cursor }, updateMyPresence] = useMyPresence() as any;
@@ -187,13 +194,15 @@ const Live = () => {
 
   return (
     <div
+      id="canvas"
       className="relative flex h-full w-full flex-1 items-center justify-center"
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
     >
-      <h1 className="text-4xl text-white">figma cl</h1>
+
+      <canvas ref={canvasRef} />
 
       {/* Render the reactions */}
       {reactions.map((reaction) => (
