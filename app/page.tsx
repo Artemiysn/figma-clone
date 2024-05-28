@@ -5,16 +5,25 @@ import Live from "@/components/Live";
 import Navbar from "@/components/Navbar";
 import RightSidebar from "@/components/RightSidebar";
 import { useEffect, useRef, useState } from "react";
-import { handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasObjectModified, handleCanvasObjectMoving, handleCanvaseMouseMove, handlePathCreated, handleResize, initializeFabric, renderCanvas } from "@/lib/canvas";
+import {
+  handleCanvasMouseDown,
+  handleCanvasMouseUp,
+  handleCanvasObjectModified,
+  handleCanvasObjectMoving,
+  handleCanvaseMouseMove,
+  handlePathCreated,
+  handleResize,
+  initializeFabric,
+  renderCanvas,
+} from "@/lib/canvas";
 import { ActiveElement } from "@/types/type";
 import { useMutation, useStorage } from "@/liveblocks.config";
 import { defaultNavElement } from "@/constants";
-import { handleDelete } from "@/lib/key-events";
+import { handleDelete, handleKeyDown } from "@/lib/key-events";
 import { handleImageUpload } from "@/lib/shapes";
 
 export default function Page() {
-
-    /**
+  /**
    * useStorage is a hook provided by Liveblocks that allows you to store
    * data in a key-value store and automatically sync it with other users
    * i.e., subscribes to updates to that selected data
@@ -23,8 +32,7 @@ export default function Page() {
    *
    * Over here, we are storing the canvas objects in the key-value store.
    */
-    const canvasObjects = useStorage((root) => root.canvasObjects);
-
+  const canvasObjects = useStorage((root) => root.canvasObjects);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   /**
@@ -34,21 +42,21 @@ export default function Page() {
    */
   const fabricRef = useRef<fabric.Canvas | null>(null);
 
-   /**
+  /**
    * isDrawing is a boolean that tells us if the user is drawing on the canvas.
    * We use this to determine if the user is drawing or not
    * i.e., if the freeform drawing mode is on or not.
    */
-   const isDrawing = useRef(false);
+  const isDrawing = useRef(false);
 
-     /**
+  /**
    * shapeRef is a reference to the shape that the user is currently drawing.
    * We use this to update the shape's properties when the user is
    * drawing/creating shape
    */
   const shapeRef = useRef<fabric.Object | null>(null);
 
-    /**
+  /**
    * selectedShapeRef is a reference to the shape that the user has selected.
    * For example, if the user has selected the rectangle shape, then this will
    * be set to "rectangle".
@@ -57,9 +65,9 @@ export default function Page() {
    * event listeners. We don't want to lose the values of these variables when
    * the component re-renders. Refs help us with that.
    */
-    const selectedShapeRef = useRef<string | null>('null');
+  const selectedShapeRef = useRef<string | null>("null");
 
-      /**
+  /**
    * activeElement is an object that contains the name, value and icon of the
    * active element in the navbar.
    */
@@ -69,7 +77,7 @@ export default function Page() {
     icon: "",
   });
 
-    /**
+  /**
    * activeObjectRef is a reference to the active/selected object in the canvas
    *
    * We want to keep track of the active object so that we can keep it in
@@ -82,10 +90,10 @@ export default function Page() {
    * of the selected shape so that we can keep it selected when the
    * canvas re-renders.
    */
-    const activeObjectRef = useRef<fabric.Object | null>(null);
-    const isEditingRef = useRef(false);
+  const activeObjectRef = useRef<fabric.Object | null>(null);
+  const isEditingRef = useRef(false);
 
-    /**
+  /**
    * imageInputRef is a reference to the input element that we use to upload
    * an image to the canvas.
    *
@@ -93,56 +101,57 @@ export default function Page() {
    * dropdown menu. So we're using this ref to trigger the click event on the
    * input element when the user clicks on the image item from the dropdown.
    */
-    const imageInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
-  //   /**
-  //  * deleteAllShapes is a mutation that deletes all the shapes from the
-  //  * key-value store of liveblocks.
-  //  *
-  //  * delete: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.delete
-  //  * get: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.get
-  //  *
-  //  * We're using this mutation to delete all the shapes from the key-value store when the user clicks on the reset button.
-  //  */
-  //   const deleteAllShapes = useMutation(({ storage }) => {
-  //     // get the canvasObjects store
-  //     const canvasObjects = storage.get("canvasObjects");
-  
-  //     // if the store doesn't exist or is empty, return
-  //     if (!canvasObjects || canvasObjects.size === 0) return true;
-  
-  //     // delete all the shapes from the store
-  //     for (const [key, value] of canvasObjects.entries()) {
-  //       canvasObjects.delete(key);
-  //     }
-  
-  //     // return true if the store is empty
-  //     return canvasObjects.size === 0;
-  //   }, []);
+    /**
+   * deleteAllShapes is a mutation that deletes all the shapes from the
+   * key-value store of liveblocks.
+   *
+   * delete: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.delete
+   * get: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.get
+   *
+   * We're using this mutation to delete all the shapes from the key-value store when the user clicks on the reset button.
+   */
+    const deleteAllShapes = useMutation(({ storage }) => {
+      // get the canvasObjects store
+      const canvasObjects = storage.get("canvasObjects");
 
-  //  /**
-  //  * deleteShapeFromStorage is a mutation that deletes a shape from the
-  //  * key-value store of liveblocks.
-  //  * useMutation is a hook provided by Liveblocks that allows you to perform
-  //  * mutations on liveblocks data.
-  //  *
-  //  * useMutation: https://liveblocks.io/docs/api-reference/liveblocks-react#useMutation
-  //  * delete: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.delete
-  //  * get: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.get
-  //  *
-  //  * We're using this mutation to delete a shape from the key-value store when
-  //  * the user deletes a shape from the canvas.
-  //  */
-  //  const deleteShapeFromStorage = useMutation(({ storage }, shapeId) => {
-  //   /**
-  //    * canvasObjects is a Map that contains all the shapes in the key-value.
-  //    * Like a store. We can create multiple stores in liveblocks.
-  //    *
-  //    * delete: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.delete
-  //    */
-  //   const canvasObjects = storage.get("canvasObjects");
-  //   canvasObjects.delete(shapeId);
-  // }, []);
+      // if the store doesn't exist or is empty, return
+      if (!canvasObjects || canvasObjects.size === 0) return true;
+
+      // delete all the shapes from the store
+      // @ts-ignore
+      for (const [key, value] of canvasObjects.entries()) {
+        canvasObjects.delete(key);
+      }
+
+      // return true if the store is empty
+      return canvasObjects.size === 0;
+    }, []);
+
+   /**
+   * deleteShapeFromStorage is a mutation that deletes a shape from the
+   * key-value store of liveblocks.
+   * useMutation is a hook provided by Liveblocks that allows you to perform
+   * mutations on liveblocks data.
+   *
+   * useMutation: https://liveblocks.io/docs/api-reference/liveblocks-react#useMutation
+   * delete: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.delete
+   * get: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.get
+   *
+   * We're using this mutation to delete a shape from the key-value store when
+   * the user deletes a shape from the canvas.
+   */
+   const deleteShapeFromStorage = useMutation(({ storage }, shapeId) => {
+    /**
+     * canvasObjects is a Map that contains all the shapes in the key-value.
+     * Like a store. We can create multiple stores in liveblocks.
+     *
+     * delete: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.delete
+     */
+    const canvasObjects = storage.get("canvasObjects");
+    canvasObjects.delete(shapeId);
+  }, []);
 
   /**
    * syncShapeInStorage is a mutation that syncs the shape in the key-value
@@ -186,17 +195,17 @@ export default function Page() {
       // delete all the shapes from the canvas
       case "reset":
         // clear the storage
-        // deleteAllShapes();
+        deleteAllShapes();
         // clear the canvas
         fabricRef.current?.clear();
         // set "select" as the active element
-        // setActiveElement(defaultNavElement);
+        setActiveElement(defaultNavElement);
         break;
 
       // delete the selected shape from the canvas
       case "delete":
         // delete it from the canvas
-        // handleDelete(fabricRef.current as any, deleteShapeFromStorage);
+        handleDelete(fabricRef.current as any, deleteShapeFromStorage);
         // set "select" as the active element
         setActiveElement(defaultNavElement);
         break;
@@ -229,10 +238,10 @@ export default function Page() {
     }
   };
 
-   /**
-    * think about how to move this function
-    */
-   useEffect(() => {
+  /**
+   * think about how to move this function
+   */
+  useEffect(() => {
     // initialize the fabric canvas
     const canvas = initializeFabric({
       canvasRef,
@@ -393,12 +402,12 @@ export default function Page() {
       });
     });
 
-    // /**
-    //  * listen to the key down event on the window which is fired when the
-    //  * user presses a key on the keyboard.
-    //  *
-    //  * We're using this to perform some actions like delete, copy, paste, etc when the user presses the respective keys on the keyboard.
-    //  */
+    /**
+     * listen to the key down event on the window which is fired when the
+     * user presses a key on the keyboard.
+     *
+     * We're using this to perform some actions like delete, copy, paste, etc when the user presses the respective keys on the keyboard.
+     */
     // window.addEventListener("keydown", (e) =>
     //   handleKeyDown({
     //     e,
@@ -410,50 +419,54 @@ export default function Page() {
     //   })
     // );
 
-    // // dispose the canvas and remove the event listeners when the component unmounts
-    // return () => {
-    //   /**
-    //    * dispose is a method provided by Fabric that allows you to dispose
-    //    * the canvas. It clears the canvas and removes all the event
-    //    * listeners
-    //    *
-    //    * dispose: http://fabricjs.com/docs/fabric.Canvas.html#dispose
-    //    */
-    //   canvas.dispose();
+    // dispose the canvas and remove the event listeners when the component unmounts
+    return () => {
+      /**
+       * dispose is a method provided by Fabric that allows you to dispose
+       * the canvas. It clears the canvas and removes all the event
+       * listeners
+       *
+       * dispose: http://fabricjs.com/docs/fabric.Canvas.html#dispose
+       */
+      canvas.dispose();
 
-    //   // remove the event listeners
-    //   window.removeEventListener("resize", () => {
-    //     handleResize({
-    //       canvas: null,
-    //     });
-    //   });
+      // remove the event listeners
+      window.removeEventListener("resize", () => {
+        handleResize({
+          canvas: null,
+        });
+      });
 
-    //   window.removeEventListener("keydown", (e) =>
-    //     handleKeyDown({
-    //       e,
-    //       canvas: fabricRef.current,
-    //       undo,
-    //       redo,
-    //       syncShapeInStorage,
-    //       deleteShapeFromStorage,
-    //     })
-    //   );
-    // };
+      // window.removeEventListener("keydown", (e) =>
+      //   handleKeyDown({
+      //     e,
+      //     canvas: fabricRef.current,
+      //     undo,
+      //     redo,
+      //     syncShapeInStorage,
+      //     deleteShapeFromStorage,
+      //   })
+      // );
+    };
   }, [canvasRef]); // run this effect only once when the component mounts and the canvasRef changes
 
-    // render the canvas when the canvasObjects from live storage changes
-    useEffect(() => {
-      renderCanvas({
-        fabricRef,
-        canvasObjects,
-        activeObjectRef,
-      });
-    }, [canvasObjects]);
+  // render the canvas when the canvasObjects from live storage changes
+  useEffect(() => {
+    renderCanvas({
+      fabricRef,
+      canvasObjects,
+      activeObjectRef,
+    });
+  }, [canvasObjects]);
 
   return (
     // <div className="h-[100vh] w-full flex justify-center items-center">
     <main className="h-screen overflow-hidden">
-      <Navbar activeElement={activeElement} imageInputRef={imageInputRef} handleActiveElement={handleActiveElement}         handleImageUpload={(e: any) => {
+      <Navbar
+        activeElement={activeElement}
+        imageInputRef={imageInputRef}
+        handleActiveElement={handleActiveElement}
+        handleImageUpload={(e: any) => {
           // prevent the default behavior of the input element
           e.stopPropagation();
 
@@ -463,9 +476,10 @@ export default function Page() {
             shapeRef,
             syncShapeInStorage,
           });
-        }}/>
+        }}
+      />
       <section className="flex h-full flex-row">
-      <LeftSidebar allShapes={[]}/>
+        <LeftSidebar allShapes={[]} />
         <Live canvasRef={canvasRef} />
       </section>
       <RightSidebar />
