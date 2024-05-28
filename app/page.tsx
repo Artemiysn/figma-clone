@@ -10,6 +10,7 @@ import {
   handleCanvasMouseUp,
   handleCanvasObjectModified,
   handleCanvasObjectMoving,
+  handleCanvasSelectionCreated,
   handleCanvaseMouseMove,
   handlePathCreated,
   handleResize,
@@ -17,7 +18,7 @@ import {
   renderCanvas,
 } from "@/lib/canvas";
 import { ActiveElement } from "@/types/type";
-import { useMutation, useStorage } from "@/liveblocks.config";
+import { useMutation, useRedo, useStorage, useUndo } from "@/liveblocks.config";
 import { defaultNavElement } from "@/constants";
 import { handleDelete, handleKeyDown } from "@/lib/key-events";
 import { handleImageUpload } from "@/lib/shapes";
@@ -65,7 +66,17 @@ export default function Page() {
    * event listeners. We don't want to lose the values of these variables when
    * the component re-renders. Refs help us with that.
    */
-  const selectedShapeRef = useRef<string | null>("null");
+  const selectedShapeRef = useRef<string | null>(null);
+
+    /**
+   * useUndo and useRedo are hooks provided by Liveblocks that allow you to
+   * undo and redo mutations.
+   *
+   * useUndo: https://liveblocks.io/docs/api-reference/liveblocks-react#useUndo
+   * useRedo: https://liveblocks.io/docs/api-reference/liveblocks-react#useRedo
+   */
+    const undo = useUndo();
+    const redo = useRedo();
 
   /**
    * activeElement is an object that contains the name, value and icon of the
@@ -408,16 +419,16 @@ export default function Page() {
      *
      * We're using this to perform some actions like delete, copy, paste, etc when the user presses the respective keys on the keyboard.
      */
-    // window.addEventListener("keydown", (e) =>
-    //   handleKeyDown({
-    //     e,
-    //     canvas: fabricRef.current,
-    //     undo,
-    //     redo,
-    //     syncShapeInStorage,
-    //     deleteShapeFromStorage,
-    //   })
-    // );
+    window.addEventListener("keydown", (e) =>
+      handleKeyDown({
+        e,
+        canvas: fabricRef.current,
+        undo,
+        redo,
+        syncShapeInStorage,
+        deleteShapeFromStorage,
+      })
+    );
 
     // dispose the canvas and remove the event listeners when the component unmounts
     return () => {
@@ -437,16 +448,16 @@ export default function Page() {
         });
       });
 
-      // window.removeEventListener("keydown", (e) =>
-      //   handleKeyDown({
-      //     e,
-      //     canvas: fabricRef.current,
-      //     undo,
-      //     redo,
-      //     syncShapeInStorage,
-      //     deleteShapeFromStorage,
-      //   })
-      // );
+      window.removeEventListener("keydown", (e) =>
+        handleKeyDown({
+          e,
+          canvas: fabricRef.current,
+          undo,
+          redo,
+          syncShapeInStorage,
+          deleteShapeFromStorage,
+        })
+      );
     };
   }, [canvasRef]); // run this effect only once when the component mounts and the canvasRef changes
 
@@ -479,7 +490,7 @@ export default function Page() {
         }}
       />
       <section className="flex h-full flex-row">
-        <LeftSidebar allShapes={[]} />
+        <LeftSidebar allShapes={Array.from(canvasObjects)} />
         <Live canvasRef={canvasRef} />
       </section>
       <RightSidebar />
