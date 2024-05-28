@@ -1,5 +1,5 @@
 import { fabric } from "fabric";
-import { v4 as uuid4 } from "uuid";
+import {v4 as uuid} from "uuid";
 
 import {
   CanvasMouseDown,
@@ -225,7 +225,7 @@ export const handlePathCreated = ({
 
   // set unique id to path object
   path.set({
-    objectId: uuid4(),
+    objectId: uuid(),
   });
 
   // sync shape in storage

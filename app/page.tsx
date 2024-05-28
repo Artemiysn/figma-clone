@@ -5,14 +5,26 @@ import Live from "@/components/Live";
 import Navbar from "@/components/Navbar";
 import RightSidebar from "@/components/RightSidebar";
 import { useEffect, useRef, useState } from "react";
-import { handleCanvasMouseDown, handleResize, initializeFabric } from "@/lib/canvas";
+import { handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasObjectModified, handleCanvasObjectMoving, handleCanvaseMouseMove, handlePathCreated, handleResize, initializeFabric, renderCanvas } from "@/lib/canvas";
 import { ActiveElement } from "@/types/type";
-import { useMutation } from "@/liveblocks.config";
+import { useMutation, useStorage } from "@/liveblocks.config";
 import { defaultNavElement } from "@/constants";
 import { handleDelete } from "@/lib/key-events";
 import { handleImageUpload } from "@/lib/shapes";
 
 export default function Page() {
+
+    /**
+   * useStorage is a hook provided by Liveblocks that allows you to store
+   * data in a key-value store and automatically sync it with other users
+   * i.e., subscribes to updates to that selected data
+   *
+   * useStorage: https://liveblocks.io/docs/api-reference/liveblocks-react#useStorage
+   *
+   * Over here, we are storing the canvas objects in the key-value store.
+   */
+    const canvasObjects = useStorage((root) => root.canvasObjects);
+
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   /**
@@ -56,6 +68,22 @@ export default function Page() {
     value: "",
     icon: "",
   });
+
+    /**
+   * activeObjectRef is a reference to the active/selected object in the canvas
+   *
+   * We want to keep track of the active object so that we can keep it in
+   * selected form when user is editing the width, height, color etc
+   * properties/attributes of the object.
+   *
+   * Since we're using live storage to sync shapes across users in real-time,
+   * we have to re-render the canvas when the shapes are updated.
+   * Due to this re-render, the selected shape is lost. We want to keep track
+   * of the selected shape so that we can keep it selected when the
+   * canvas re-renders.
+   */
+    const activeObjectRef = useRef<fabric.Object | null>(null);
+    const isEditingRef = useRef(false);
 
     /**
    * imageInputRef is a reference to the input element that we use to upload
@@ -136,13 +164,13 @@ export default function Page() {
     const shapeData = object.toJSON();
     shapeData.objectId = objectId;
 
-    // const canvasObjects = storage.get("canvasObjects") as any;
+    const canvasObjects = storage.get("canvasObjects");
     /**
      * set is a method provided by Liveblocks that allows you to set a value
      *
      * set: https://liveblocks.io/docs/api-reference/liveblocks-client#LiveMap.set
      */
-    // canvasObjects.set(objectId, shapeData);
+    canvasObjects.set(objectId, shapeData);
   }, []);
 
   /**
@@ -228,86 +256,86 @@ export default function Page() {
       });
     });
 
-    // /**
-    //  * listen to the mouse move event on the canvas which is fired when the
-    //  * user moves the mouse on the canvas
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas.on("mouse:move", (options) => {
-    //   handleCanvaseMouseMove({
-    //     options,
-    //     canvas,
-    //     isDrawing,
-    //     selectedShapeRef,
-    //     shapeRef,
-    //     syncShapeInStorage,
-    //   });
-    // });
+    /**
+     * listen to the mouse move event on the canvas which is fired when the
+     * user moves the mouse on the canvas
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas.on("mouse:move", (options) => {
+      handleCanvaseMouseMove({
+        options,
+        canvas,
+        isDrawing,
+        selectedShapeRef,
+        shapeRef,
+        syncShapeInStorage,
+      });
+    });
 
-    // /**
-    //  * listen to the mouse up event on the canvas which is fired when the
-    //  * user releases the mouse on the canvas
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas.on("mouse:up", () => {
-    //   handleCanvasMouseUp({
-    //     canvas,
-    //     isDrawing,
-    //     shapeRef,
-    //     activeObjectRef,
-    //     selectedShapeRef,
-    //     syncShapeInStorage,
-    //     setActiveElement,
-    //   });
-    // });
+    /**
+     * listen to the mouse up event on the canvas which is fired when the
+     * user releases the mouse on the canvas
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas.on("mouse:up", () => {
+      handleCanvasMouseUp({
+        canvas,
+        isDrawing,
+        shapeRef,
+        activeObjectRef,
+        selectedShapeRef,
+        syncShapeInStorage,
+        setActiveElement,
+      });
+    });
 
-    // /**
-    //  * listen to the path created event on the canvas which is fired when
-    //  * the user creates a path on the canvas using the freeform drawing
-    //  * mode
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas.on("path:created", (options) => {
-    //   handlePathCreated({
-    //     options,
-    //     syncShapeInStorage,
-    //   });
-    // });
+    /**
+     * listen to the path created event on the canvas which is fired when
+     * the user creates a path on the canvas using the freeform drawing
+     * mode
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas.on("path:created", (options) => {
+      handlePathCreated({
+        options,
+        syncShapeInStorage,
+      });
+    });
 
-    // /**
-    //  * listen to the object modified event on the canvas which is fired
-    //  * when the user modifies an object on the canvas. Basically, when the
-    //  * user changes the width, height, color etc properties/attributes of
-    //  * the object or moves the object on the canvas.
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas.on("object:modified", (options) => {
-    //   handleCanvasObjectModified({
-    //     options,
-    //     syncShapeInStorage,
-    //   });
-    // });
+    /**
+     * listen to the object modified event on the canvas which is fired
+     * when the user modifies an object on the canvas. Basically, when the
+     * user changes the width, height, color etc properties/attributes of
+     * the object or moves the object on the canvas.
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas.on("object:modified", (options) => {
+      handleCanvasObjectModified({
+        options,
+        syncShapeInStorage,
+      });
+    });
 
-    // /**
-    //  * listen to the object moving event on the canvas which is fired
-    //  * when the user moves an object on the canvas.
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas?.on("object:moving", (options) => {
-    //   handleCanvasObjectMoving({
-    //     options,
-    //   });
-    // });
+    /**
+     * listen to the object moving event on the canvas which is fired
+     * when the user moves an object on the canvas.
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas?.on("object:moving", (options) => {
+      handleCanvasObjectMoving({
+        options,
+      });
+    });
 
     // /**
     //  * listen to the selection created event on the canvas which is fired
@@ -412,6 +440,15 @@ export default function Page() {
     //   );
     // };
   }, [canvasRef]); // run this effect only once when the component mounts and the canvasRef changes
+
+    // render the canvas when the canvasObjects from live storage changes
+    useEffect(() => {
+      renderCanvas({
+        fabricRef,
+        canvasObjects,
+        activeObjectRef,
+      });
+    }, [canvasObjects]);
 
   return (
     // <div className="h-[100vh] w-full flex justify-center items-center">
