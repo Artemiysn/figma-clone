@@ -10,14 +10,16 @@ import {
   handleCanvasMouseUp,
   handleCanvasObjectModified,
   handleCanvasObjectMoving,
+  handleCanvasObjectScaling,
   handleCanvasSelectionCreated,
+  handleCanvasZoom,
   handleCanvaseMouseMove,
   handlePathCreated,
   handleResize,
   initializeFabric,
   renderCanvas,
 } from "@/lib/canvas";
-import { ActiveElement } from "@/types/type";
+import { ActiveElement, Attributes } from "@/types/type";
 import { useMutation, useRedo, useStorage, useUndo } from "@/liveblocks.config";
 import { defaultNavElement } from "@/constants";
 import { handleDelete, handleKeyDown } from "@/lib/key-events";
@@ -87,6 +89,24 @@ export default function Page() {
     value: "",
     icon: "",
   });
+
+    /**
+   * elementAttributes is an object that contains the attributes of the selected
+   * element in the canvas.
+   *
+   * We use this to update the attributes of the selected element when the user
+   * is editing the width, height, color etc properties/attributes of the
+   * object.
+   */
+    const [elementAttributes, setElementAttributes] = useState<Attributes>({
+      width: "",
+      height: "",
+      fontSize: "",
+      fontFamily: "",
+      fontWeight: "",
+      fill: "#aabbcc",
+      stroke: "#aabbcc",
+    });
 
   /**
    * activeObjectRef is a reference to the active/selected object in the canvas
@@ -357,48 +377,48 @@ export default function Page() {
       });
     });
 
-    // /**
-    //  * listen to the selection created event on the canvas which is fired
-    //  * when the user selects an object on the canvas.
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas.on("selection:created", (options) => {
-    //   handleCanvasSelectionCreated({
-    //     options,
-    //     isEditingRef,
-    //     setElementAttributes,
-    //   });
-    // });
+    /**
+     * listen to the selection created event on the canvas which is fired
+     * when the user selects an object on the canvas.
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas.on("selection:created", (options) => {
+      handleCanvasSelectionCreated({
+        options,
+        isEditingRef,
+        setElementAttributes,
+      });
+    });
 
-    // /**
-    //  * listen to the scaling event on the canvas which is fired when the
-    //  * user scales an object on the canvas.
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas.on("object:scaling", (options) => {
-    //   handleCanvasObjectScaling({
-    //     options,
-    //     setElementAttributes,
-    //   });
-    // });
+    /**
+     * listen to the scaling event on the canvas which is fired when the
+     * user scales an object on the canvas.
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas.on("object:scaling", (options) => {
+      handleCanvasObjectScaling({
+        options,
+        setElementAttributes,
+      });
+    });
 
-    // /**
-    //  * listen to the mouse wheel event on the canvas which is fired when
-    //  * the user scrolls the mouse wheel on the canvas.
-    //  *
-    //  * Event inspector: http://fabricjs.com/events
-    //  * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
-    //  */
-    // canvas.on("mouse:wheel", (options) => {
-    //   handleCanvasZoom({
-    //     options,
-    //     canvas,
-    //   });
-    // });
+    /**
+     * listen to the mouse wheel event on the canvas which is fired when
+     * the user scrolls the mouse wheel on the canvas.
+     *
+     * Event inspector: http://fabricjs.com/events
+     * Event list: http://fabricjs.com/docs/fabric.Canvas.html#fire
+     */
+    canvas.on("mouse:wheel", (options) => {
+      handleCanvasZoom({
+        options,
+        canvas,
+      });
+    });
 
     /**
      * listen to the resize event on the window which is fired when the
@@ -471,7 +491,6 @@ export default function Page() {
   }, [canvasObjects]);
 
   return (
-    // <div className="h-[100vh] w-full flex justify-center items-center">
     <main className="h-screen overflow-hidden">
       <Navbar
         activeElement={activeElement}
@@ -492,9 +511,16 @@ export default function Page() {
       <section className="flex h-full flex-row">
         <LeftSidebar allShapes={Array.from(canvasObjects)} />
         <Live canvasRef={canvasRef} />
+        <RightSidebar
+          elementAttributes={elementAttributes}
+          setElementAttributes={setElementAttributes}
+          fabricRef={fabricRef}
+          isEditingRef={isEditingRef}
+          activeObjectRef={activeObjectRef}
+          syncShapeInStorage={syncShapeInStorage}
+        />
       </section>
-      <RightSidebar />
+
     </main>
-    // </div>
   );
 }
