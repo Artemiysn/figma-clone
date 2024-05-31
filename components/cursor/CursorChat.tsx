@@ -33,9 +33,6 @@ const CursorChat = ({
     }
   };
 
-  // console.log('cursor chat');
-  console.log(cursorState.mode);
-
   return (
     <div
       className="absolute top-0 left-0"
