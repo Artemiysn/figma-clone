@@ -15,8 +15,8 @@ import { ComposerSubmitComment } from "@liveblocks/react-comments/primitives";
 import { useCreateThread } from "@/liveblocks.config";
 import { useMaxZIndex } from "@/lib/useMaxZIndex";
 
-// import PinnedComposer from "./PinnedComposer";
-// import NewThreadCursor from "./NewThreadCursor";
+import PinnedComposer from "./PinnedComposer";
+import NewThreadCursor from "./NewThreadCursor";
 
 type ComposerCoords = null | { x: number; y: number };
 
@@ -230,12 +230,12 @@ export const NewThread = ({ children }: Props) => {
           }}
           data-hide-cursors
         >
-          {/* <PinnedComposer onComposerSubmit={handleComposerSubmit} /> */}
+          <PinnedComposer onComposerSubmit={handleComposerSubmit} />
         </Portal.Root>
       ) : null}
 
       {/* Show the customizing cursor when placing a comment. The one with comment shape */}
-      {/* <NewThreadCursor display={creatingCommentState === "placing"} /> */}
+      <NewThreadCursor display={creatingCommentState === "placing"} />
     </>
   );
 };

@@ -25,3 +25,6 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 1. Убрать множество состояний из файла page\App
 2. При выборе текста\фигуры не правильно показывается цвет
 3. Поправить версии в package на минорные
+
+4. components\comments\CommentsOverlay.tsx - здесь баг с хуком
+5. ui баг - комменты прячутся за сайдбаром справа

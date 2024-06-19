@@ -45,19 +45,23 @@ const OverlayThread = ({ thread, maxZIndex }: OverlayThreadProps) => {
    */
   const editThreadMetadata = useEditThreadMetadata();
 
+  // here is a mystreious mistake
   /**
    * We're using the useUser hook to get the user of the thread.
    *
    * useUser: https://liveblocks.io/docs/api-reference/liveblocks-react#useUser
+   * 
    */
-  const { isLoading } = useUser(thread.comments[0].userId);
+  // const { isLoading } = useUser(thread.comments[0].userId);
+
 
   // We're using a ref to get the thread element to position it
   const threadRef = useRef<HTMLDivElement>(null);
 
+
   // If other thread(s) above, increase z-index on last element updated
   const handleIncreaseZIndex = useCallback(() => {
-    if (maxZIndex === thread.metadata.zIndex) {
+    if (maxZIndex === thread?.metadata?.zIndex) {
       return;
     }
 
@@ -70,9 +74,10 @@ const OverlayThread = ({ thread, maxZIndex }: OverlayThreadProps) => {
     });
   }, [thread, editThreadMetadata, maxZIndex]);
 
-  if (isLoading) {
-    return null;
-  }
+  // if (isLoading) {
+  //   return null;
+  // }
+
 
   return (
     <div
